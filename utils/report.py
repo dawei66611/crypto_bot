@@ -1,6 +1,11 @@
+# utils/report.py
+
 import pandas as pd
 import matplotlib.pyplot as plt
 import io
+import logging
+
+logger = logging.getLogger(__name__)
 
 def generate_daily_report():
     # 示例数据
@@ -40,5 +45,5 @@ def plot_report(df, title):
     buf = io.BytesIO()
     plt.savefig(buf, format='png')
     buf.seek(0)
+    plt.close()
     return buf
-
