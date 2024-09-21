@@ -14,4 +14,3 @@ def analyze_market_sentiment(news_list):
         return "消极"
     else:
         return "中性"
-
