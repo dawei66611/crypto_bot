@@ -29,4 +29,3 @@ async def fetch_cmc_market_data(symbol='BTC'):
             else:
                 logger.error("CMC API 返回数据格式错误")
                 raise Exception("Failed to fetch CMC data")
-
