@@ -1,32 +1,22 @@
-from telegram.constants import ParseMode
-from telegram import Update, InputFile
+# handlers/images.py
+
+from telegram import Update
 from telegram.ext import ContextTypes
-from utils.report import generate_daily_report, generate_weekly_report, generate_monthly_report, plot_report
+from utils.ocr import perform_ocr
+import logging
 
-async def handle_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    message = update.message.text.lower()
+logger = logging.getLogger(__name__)
 
-    if "今日报表" in message:
-        await send_daily_report(update)
-    elif "周报表" in message:
-        await send_weekly_report(update)
-    elif "月报表" in message:
-        await send_monthly_report(update)
-    else:
-        return
-
-async def send_daily_report(update: Update):
-    df = generate_daily_report()
-    chart = plot_report(df, "每日预测报表")
-    await update.message.reply_photo(photo=InputFile(chart, filename='daily_report.png'))
-
-async def send_weekly_report(update: Update):
-    df = generate_weekly_report()
-    chart = plot_report(df, "每周预测报表")
-    await update.message.reply_photo(photo=InputFile(chart, filename='weekly_report.png'))
-
-async def send_monthly_report(update: Update):
-    df = generate_monthly_report()
-    chart = plot_report(df, "每月预测报表")
-    await update.message.reply_photo(photo=InputFile(chart, filename='monthly_report.png'))
-
+async def handle_image(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    try:
+        photo = update.message.photo[-1]
+        image_file = await photo.get_file()
+        image_data = await image_file.download_as_bytearray()
+        text = perform_ocr(image_data)
+        if text.strip():
+            await update.message.reply_text(f"识别到的文字：\n{text}")
+        else:
+            await update.message.reply_text("未能识别到文字。")
+    except Exception as e:
+        logger.error(f"OCR 处理失败: {e}")
+        await update.message.reply_text("处理图片时出错，请稍后再试。")
