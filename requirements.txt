@@ -1,1 +1,9 @@
-
+python-telegram-bot==20.3
+APScheduler
+requests
+openai
+pytesseract
+Pillow
+TA-Lib
+numpy
+python-dotenv
