@@ -4,9 +4,10 @@ import logging
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from pytz import timezone
 from utils.indicators import calculate_technical_indicators
-from utils.analysis import generate_prediction_analysis, generate_news_analysis
+from utils.analysis import generate_prediction_analysis
 from utils.market_data import fetch_cmc_market_data
 from utils.news import fetch_latest_news
+from utils.sentiment import analyze_market_sentiment
 from utils.gpt_analysis import generate_gpt_analysis
 from config import GROUP_CHAT_ID
 from telegram import InputFile, ParseMode
@@ -33,17 +34,24 @@ async def generate_prediction_chart(prices, indicators):
     ax.plot(prices, label='价格', color='blue')
 
     # 绘制技术指标
-    macd = indicators['MACD']
-    rsi = indicators['RSI']
     boll_upper = indicators['Bollinger_Upper']
     boll_middle = indicators['Bollinger_Middle']
     boll_lower = indicators['Bollinger_Lower']
+    macd = indicators['MACD']
+    rsi = indicators['RSI']
+    sma = indicators['SMA_30']
+    ema = indicators['EMA_30']
 
-    ax.plot(prices, label='价格', color='blue')
+    # 绘制 Bollinger Bands
     ax.plot([boll_upper]*len(prices), label='Bollinger Upper', color='green', linestyle='--')
     ax.plot([boll_middle]*len(prices), label='Bollinger Middle', color='orange', linestyle='--')
     ax.plot([boll_lower]*len(prices), label='Bollinger Lower', color='green', linestyle='--')
 
+    # 绘制 SMA 和 EMA
+    ax.plot([sma]*len(prices), label='SMA 30', color='purple', linestyle='-.')
+    ax.plot([ema]*len(prices), label='EMA 30', color='brown', linestyle='-.')
+
+    # 绘制 MACD 和 RSI
     ax2 = ax.twinx()
     ax2.plot([macd]*len(prices), label='MACD', color='purple', linestyle='-.')
     ax2.plot([rsi]*len(prices), label='RSI', color='red', linestyle=':')
@@ -67,17 +75,19 @@ async def send_hourly_prediction(application):
         bot = application.bot
         # 获取实时价格
         current_price = await fetch_cmc_market_data('BTC')
-        # 示例历史价格，实际应从 API 获取
-        # 这里假设过去100小时的价格，每小时递减100美元作为示例
-        prices = [current_price - i * 100 for i in range(100)][::-1]
+        # 获取过去100小时的价格，实际应从 API 获取
+        # 这里仅为示例，假设每小时价格变化为 ±100美元
+        prices = [current_price + (i - 50) * 100 for i in range(100)]
         indicators = calculate_technical_indicators(prices)
 
         # 获取最新新闻
         news = await fetch_latest_news('Bitcoin')
-        news_analysis = generate_news_analysis(news)
+        news_analysis = generate_prediction_analysis(prices, indicators)  # 使用原有技术指标分析
+        # 分析市场情绪
+        market_sentiment = analyze_market_sentiment(news)
 
         # 生成详细分析报告
-        gpt_analysis = await generate_gpt_analysis(indicators, news_analysis)
+        gpt_analysis = await generate_gpt_analysis(indicators, news_analysis, market_sentiment)
 
         # 构建预测方向
         prediction_direction = "上涨" if "上涨" in gpt_analysis else "下跌"
@@ -132,34 +142,54 @@ def setup_scheduler(application):
 
 async def send_daily_report_scheduler(application):
     from handlers.messages import send_daily_report
-    # 创建一个虚拟的 Update 对象
     class FakeUpdate:
-        async def message(self):
-            class FakeMessage:
-                async def reply_photo(self, photo, caption):
-                    pass
-            return FakeMessage()
-    fake_update = FakeUpdate()
+        def __init__(self, application):
+            self.application = application
+            self.message = self
+
+        async def reply_photo(self, photo, caption):
+            bot = self.application.bot
+            await bot.send_photo(
+                chat_id=GROUP_CHAT_ID,
+                photo=InputFile(photo, filename='daily_report.png'),
+                caption=caption
+            )
+
+    fake_update = FakeUpdate(application)
     await send_daily_report(fake_update)
 
 async def send_weekly_report_scheduler(application):
     from handlers.messages import send_weekly_report
     class FakeUpdate:
-        async def message(self):
-            class FakeMessage:
-                async def reply_photo(self, photo, caption):
-                    pass
-            return FakeMessage()
-    fake_update = FakeUpdate()
+        def __init__(self, application):
+            self.application = application
+            self.message = self
+
+        async def reply_photo(self, photo, caption):
+            bot = self.application.bot
+            await bot.send_photo(
+                chat_id=GROUP_CHAT_ID,
+                photo=InputFile(photo, filename='weekly_report.png'),
+                caption=caption
+            )
+
+    fake_update = FakeUpdate(application)
     await send_weekly_report(fake_update)
 
 async def send_monthly_report_scheduler(application):
     from handlers.messages import send_monthly_report
     class FakeUpdate:
-        async def message(self):
-            class FakeMessage:
-                async def reply_photo(self, photo, caption):
-                    pass
-            return FakeMessage()
-    fake_update = FakeUpdate()
+        def __init__(self, application):
+            self.application = application
+            self.message = self
+
+        async def reply_photo(self, photo, caption):
+            bot = self.application.bot
+            await bot.send_photo(
+                chat_id=GROUP_CHAT_ID,
+                photo=InputFile(photo, filename='monthly_report.png'),
+                caption=caption
+            )
+
+    fake_update = FakeUpdate(application)
     await send_monthly_report(fake_update)
