@@ -14,7 +14,7 @@ async def fetch_latest_news(keyword='Bitcoin'):
         'apiKey': NEWS_API_KEY,
         'language': 'zh',
         'sortBy': 'publishedAt',
-        'pageSize': 5
+        'pageSize': 10  # 增加新闻数量
     }
     async with aiohttp.ClientSession() as session:
         async with session.get(url, params=parameters) as response:
@@ -29,4 +29,3 @@ async def fetch_latest_news(keyword='Bitcoin'):
             else:
                 logger.error("News API 返回数据格式错误")
                 raise Exception("Failed to fetch news data")
-
