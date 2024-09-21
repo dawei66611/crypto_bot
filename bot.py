@@ -22,7 +22,7 @@ async def main():
     await init_db()
 
     # 创建Telegram应用
-    application = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).concurrent_updates(True).build()
+    application = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).build()
 
     # 添加命令处理器
     application.add_handler(CommandHandler("start", start_command))
