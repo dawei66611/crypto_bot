@@ -1,13 +1,12 @@
+# bot.py
+
 import logging
+import asyncio
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters
 from config import TELEGRAM_BOT_TOKEN
-from handlers import (
-    start_command,
-    activate_command,
-    invite_command,
-    handle_text_message,
-    handle_image
-)
+from handlers.commands import start_command, activate_command, invite_command
+from handlers.images import handle_image
+from handlers.messages import handle_text_message
 from utils.db import init_db
 from scheduler import setup_scheduler
 
@@ -18,12 +17,12 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-def main():
+async def main():
     # 初始化数据库
-    init_db()
+    await init_db()
 
     # 创建Telegram应用
-    application = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).build()
+    application = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).concurrent_updates(True).build()
 
     # 添加命令处理器
     application.add_handler(CommandHandler("start", start_command))
@@ -40,8 +39,7 @@ def main():
     setup_scheduler(application)
 
     # 启动Bot
-    application.run_polling()
+    await application.run_polling()
 
 if __name__ == '__main__':
-    main()
-
+    asyncio.run(main())
