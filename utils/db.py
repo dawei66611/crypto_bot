@@ -5,6 +5,9 @@ from datetime import datetime, timedelta
 from config import DATABASE, VALID_ACTIVATION_CODES
 import uuid
 import asyncio
+import logging
+
+logger = logging.getLogger(__name__)
 
 async def init_db():
     async with aiosqlite.connect(DATABASE) as db:
@@ -66,7 +69,7 @@ async def get_membership_level(user_id):
                 level, end_time = result
                 if datetime.strptime(end_time, '%Y-%m-%d %H:%M:%S') > datetime.now():
                     return level
-        return None
+            return None
 
 def generate_referral_code():
     return uuid.uuid4().hex[:8]
