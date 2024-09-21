@@ -1,9 +1,21 @@
+# handlers/commands.py
+
 from telegram import Update
 from telegram.ext import ContextTypes
-from utils.db import update_user_membership, verify_activation_code, mark_activation_code_as_used
+from utils.db import update_user_membership, verify_activation_code, mark_activation_code_as_used, get_referral_code, set_referral_code
+import logging
+
+logger = logging.getLogger(__name__)
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("欢迎使用加密货币助手！输入 /activate 激活会员功能。")
+    user_id = update.message.from_user.id
+    referral_code = get_referral_code(user_id)
+    message = (
+        "欢迎使用加密货币助手！\n"
+        "输入 /activate <激活码> 激活会员功能。\n"
+        f"您的推荐码：{referral_code}"
+    )
+    await update.message.reply_text(message)
 
 async def activate_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     args = context.args
@@ -22,3 +34,8 @@ async def activate_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text("无效的激活码，请联系管理员获取有效的激活码。")
 
+async def invite_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.message.from_user.id
+    referral_code = get_referral_code(user_id)
+    invite_link = f"https://t.me/YourBotUsername?start={referral_code}"
+    await update.message.reply_text(f"邀请好友使用您的推荐码：{referral_code}\n邀请链接：{invite_link}")
