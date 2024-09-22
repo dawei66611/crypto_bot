@@ -1,6 +1,7 @@
 # scheduler.py
 
 import logging
+import asyncio
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from pytz import timezone
 from utils.indicators import calculate_technical_indicators
@@ -10,15 +11,25 @@ from utils.news import fetch_latest_news
 from utils.sentiment import analyze_market_sentiment
 from utils.gpt_analysis import generate_gpt_analysis
 from config import GROUP_CHAT_ID
-from telegram import InputFile, ParseMode
+from telegram import InputFile
+from telegram.constants import ParseMode
 import matplotlib.pyplot as plt
 import io
 
+
 logger = logging.getLogger(__name__)
 
-async def send_prediction_with_chart(application, prices, indicators):
+async def send_prediction_with_chart(application):
     try:
         bot = application.bot
+
+        # 获取实时价格
+        current_price = await fetch_cmc_market_data('BTC')
+        # 获取过去100小时的价格，实际应从 API 获取
+        # 这里仅为示例，假设每小时价格变化为 ±100美元
+        prices = [current_price + (i - 50) * 100 for i in range(100)]
+        indicators = calculate_technical_indicators(prices)
+
         chart = await generate_prediction_chart(prices, indicators)
 
         await bot.send_photo(
@@ -28,6 +39,7 @@ async def send_prediction_with_chart(application, prices, indicators):
         )
     except Exception as e:
         logger.error(f"发送图表失败: {e}")
+
 
 async def generate_prediction_chart(prices, indicators):
     fig, ax = plt.subplots(figsize=(10, 6))
@@ -123,7 +135,7 @@ async def send_hourly_prediction(application):
         )
 
 def setup_scheduler(application):
-    scheduler = AsyncIOScheduler()
+    scheduler = AsyncIOScheduler(event_loop=asyncio.get_running_loop())
     tz = timezone('Asia/Shanghai')
 
     # 每小时整点发送预测
